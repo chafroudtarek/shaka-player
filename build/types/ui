@@ -54,3 +54,5 @@
 +../../ui/watermark.js
 +../../ui/gl_matrix/matrix_4x4.js
 +../../ui/gl_matrix/matrix_quaternion.js
+
++../../ui/layout_manager.js
