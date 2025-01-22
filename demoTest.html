@@ -5,9 +5,7 @@
   <title>Shaka Player Layout Manager Demo</title>
   <link rel="shortcut icon" href="#">
   <link rel="stylesheet" type="text/css" href="dist/controls.css">
-  <script src="dist/shaka-player.compiled.js"></script>
-  <script src="dist/shaka-player.compiled.debug.js"></script>
-  <script src="dist/shaka-player.ui.js"></script>
+  <script src="dist/shaka-player.ui.debug.js"></script>
   <style>
     .video-container {
       max-width: 800px;
@@ -40,79 +38,112 @@
   <div class="config-panel">
     <h3>Layout Themes</h3>
     <button class="theme-default" onclick="applyDefaultTheme()">Default Theme</button>
-    <button class="theme-test" onclick="applyTestTheme()">Test Theme</button>
   </div>
 
   <script>
-    let player = null;
-    let ui = null;
-    let layoutManager = null;
+    const manifestUri = "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd";
+    let video; 
+    let player;
+    let ui;
 
-    async function initApp() {
-      shaka.polyfill.installAll();
+    async function init() {
+      // Check if the browser supports the player
+      const supported = await shaka.Player.isBrowserSupported();
+      if (!supported) {
+        console.error('Browser not supported!');
+        return;
+      }
+
+      // Get the video element
+      video = document.getElementById('video');
       
-      const video = document.getElementById('video');
-      const videoContainer = video.parentElement;
-      
+      // Initialize the player
       player = new shaka.Player(video);
-      ui = new shaka.ui.Overlay(player, videoContainer, video);
-      layoutManager = new shaka.ui.LayoutManager(videoContainer, ui.getControls());
-
-      // Listen to errors
-      player.addEventListener('error', onError);
+      
+      // Initialize the UI
+      ui = new shaka.ui.Overlay(player, video.parentElement, video);
+      
+      // Listen to error events
+      player.addEventListener('error', onPlayerErrorEvent);
       
       try {
-        await player.load('//storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd');
+        // Load the manifest
+        await player.load(manifestUri);
         console.log('The video has now been loaded!');
+        
+        // Apply initial configuration after a short delay to ensure UI is ready
+        // setTimeout(applyDefaultTheme, 100);
       } catch (error) {
-        onError(error);
+        console.error('Error code', error.code, 'object', error);
       }
     }
 
-    function onError(error) {
-      console.error('Error code', error.code, 'object', error);
+    function onPlayerErrorEvent(event) {
+      console.error('Player error:', event.detail);
+    }
+
+    function onUIErrorEvent(event) {
+      console.error('UI error:', event);
     }
 
     function applyDefaultTheme() {
-      layoutManager.applyConfig({
-        controls: {
-          background: 'rgba(0, 0, 0, 0.8)',
-          height: '48px',
-          width: '100%',
-          opacity: 1,
-          borderRadius: '40px',
-          padding: '0 16px'
-        },
-        progressBar: {
-          base: 'green',                        // Dark background
-          buffered: 'red',                    // Slightly lighter grayd
-          played: 'linear-gradient(90deg, #ff0000, #ff6b6b)', // Red gradient
-          hover: 'green'                        // Bright red on hover
+      try {
+        const controls = ui.getControls();
+        if (!controls) {
+          console.error('Controls not initialized');
+          return;
         }
-      });
+        const layoutManager = new shaka.ui.LayoutManager(video.parentElement, controls);
+
+        const playerConfig = {
+          controlPanelElements: [
+            'play_pause',
+            // 'rewind',
+            // 'fast_forward',
+            // 'time_and_duration',
+             'spacer',
+            'mute',
+             'volume',
+            // 'quality',
+             'playback_rate',
+            // 'overflow_menu'
+          ],
+          addSeekBar: true,
+          showBackward: true,
+          showForward: true,
+          showPlayPauseBtn: true,
+          showTimeText: true,
+          showFullScreen: false,
+          showProgressBar: false,
+          showQualityControl: true,
+          showSpeedControl: true,
+          primaryColor: '#556666',
+          buttonShape: 'Circle',
+          skipDuration: 10,
+          enableTooltips: true,
+          seekBarColors: {
+            base: '#000',
+            buffered: '#000',
+            played: '#000'
+          },
+          collapseInSettings: ['quality', 'playback_rate']
+        };
+
+        layoutManager.applyConfig(playerConfig);
+        console.log('Default theme applied successfully');
+      } catch (error) {
+        console.error('Error applying default theme:', error);
+      }
     }
 
-    function applyTestTheme() {
-      layoutManager.applyConfig({
-        controls: {
-          background: 'red',
-          height: '48px',
-          width: '100%',
-          opacity: 10,
-          borderRadius: '40px',
-          padding: '0 16px',
-          position: 'bottom'
-        },
-        progressBar: {
-          base: '#333333',          // Dark gray background
-          buffered: '#666666',      // Medium gray for buffered
-          played: '#ff0000',        // Red for played portion
-          hover: '#ff3333'          // Lighter red for hover
-        }
-      });
-    }
+    
 
-    document.addEventListener('DOMContentLoaded', initApp);
+    // Wait for DOM content to load before initializing
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
 </body>
 </html>

@@ -269,6 +269,49 @@ shaka.extern.UIVolumeBarColors;
  */
 shaka.extern.UIConfiguration;
 
+/**
+ * @typedef {{
+ *   playerName: string,
+ *   collapseInSettings: !Array.<string>,
+ *   confirmBeforeAutoResume: boolean,
+ *   enableAirPlay: boolean,
+ *   enableAutoResumeLocal: boolean,
+ *   enableChromecast: boolean,
+ *   enableChapters: boolean,
+ *   addBigPlayButton: boolean,
+ *   enableDoubleTapSkip: boolean,
+ *   enableKeyboardShortcuts: boolean,
+ *   enableLockControls: boolean,
+ *   enablePiP: boolean,
+ *   enableReportBug: boolean,
+ *   enableSaveOffline: boolean,
+ *   hideControlsOnPause: boolean,
+ *   playbackRates: !Array.<string>,
+ *   primaryColor: string,
+ *   showBackward: boolean,
+ *   showCaptionsControl: boolean,
+ *   showForward: boolean,
+ *   showFullScreen: boolean,
+ *   showPlayPauseBtn: boolean,
+ *   showProgressBar: boolean,
+ *   showQualityControl: boolean,
+ *   showReplayAtEnd: boolean,
+ *   showScrubbingPreview: boolean,
+ *   showSpeedControl: boolean,
+ *   showTimeText: boolean,
+ *   showVolume: boolean,
+ *   skipDuration: number,
+ *   conserveVolumeAcrossSession: boolean,
+ *   conserveSpeedAcrossSession: boolean,
+ *   conserveQualityAcrossSession: boolean,
+ *   conserveSelectedCaptionLanguage: boolean,
+ *   initialPlayButtonShape: string,
+ *   initialDurationPosition: string
+ * }}
+ *
+ * @exportDoc
+ */
+shaka.ui.LayoutManager.Options;
 
 /**
  * Interface for UI elements.  UI elements should inherit from the concrete base
