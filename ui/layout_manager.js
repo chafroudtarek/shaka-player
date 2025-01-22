@@ -32,9 +32,7 @@ goog.require('goog.asserts');
  *   hideControlsOnPause: boolean,
  *   playbackRates: !Array<string>,
  *   primaryColor: string,
- *   showBackward: boolean,
  *   showCaptionsControl: boolean,
- *   showForward: boolean,
  *   showFullScreen: boolean,
  *   showPlayPauseBtn: boolean,
  *   showProgressBar: boolean,
@@ -43,7 +41,6 @@ goog.require('goog.asserts');
  *   showScrubbingPreview: boolean,
  *   showSpeedControl: boolean,
  *   showTimeText: boolean,
- *   showVolume: boolean,
  *   skipDuration: number,
  *   conserveVolumeAcrossSession: boolean,
  *   conserveSpeedAcrossSession: boolean,
@@ -55,7 +52,8 @@ goog.require('goog.asserts');
  *   seekBarColors: {
  *     base: string,
  *     buffered: string,
- *     played: string
+ *     played: string,
+ *     adBreaks: string
  *   },
  *   enableTooltips: boolean,
  *   collapseInSettings: !Array<string>
@@ -88,8 +86,12 @@ goog.require('goog.asserts');
  *   Position of the duration display.
  * @property {string} buttonShape
  *   Shape of the play button ('Circle' or 'Square').
- * @property {{base: string, buffered: string, played: string}} seekBarColors
- *   Colors for the seek bar.
+ * @property {{
+*   base: string,
+*   buffered: string,
+*   played: string,
+*   adBreaks: string
+* }} seekBarColors Colors for the seek bar.
  * @property {boolean} enableTooltips
  *   Whether to enable tooltips.
  * @property {!Array<string>} collapseInSettings
@@ -152,8 +154,10 @@ shaka.ui.LayoutManager = class extends shaka.ui.Element {
       // Define the control elements we want to manage
       const controlSelectors = [
         '.shaka-play-button',
+        '.shaka-small-play-button',
         '.shaka-volume-container',
         '.shaka-time-container',
+        '.shaka-current-time',
         '.shaka-fullscreen-button',
         '.shaka-overflow-menu-button',
         '.shaka-quality-button',
@@ -168,43 +172,48 @@ shaka.ui.LayoutManager = class extends shaka.ui.Element {
       // First hide all control elements
       for (let i = 0; i < controlSelectors.length; i++) {
         const selector = controlSelectors[i];
-        const element = container.querySelector(selector);
-        if (element) {
+        const elements = container.querySelectorAll(selector);
+        for (let j = 0; j < elements.length; j++) {
+          const element = elements[j];
           shaka.log.debug('Hiding control:', selector);
           element.style.display = 'none';
         }
       }
 
-      // Then show only the ones in controlPanelElements
       for (let i = 0; i < config.controlPanelElements.length; i++) {
         const elementName = config.controlPanelElements[i];
         let selector;
-        shaka.log.debug('Showing control:', elementName);
+        let shouldShow = true;
 
         switch (elementName) {
           case 'play_pause':
-            selector = '.shaka-play-button';
+            selector = ['.shaka-play-button', '.shaka-small-play-button'];
+            shouldShow = config.showPlayPauseBtn !== false;
+            break;
+          case 'time_and_duration':
+            selector = ['.shaka-time-container', '.shaka-current-time'];
+            shouldShow = config.showTimeText !== false;
             break;
           case 'volume':
             selector = '.shaka-volume-container';
             break;
-          case 'time_and_duration':
-            selector = '.shaka-time-container';
-            break;
           case 'fullscreen':
             selector = '.shaka-fullscreen-button';
+            shouldShow = config.showFullScreen !== false;
             break;
           case 'overflow_menu':
             selector = '.shaka-overflow-menu-button';
             break;
           case 'quality':
             selector = '.shaka-quality-button';
+            shouldShow = config.showQualityControl !== false;
             break;
           case 'captions':
             selector = '.shaka-captions-button';
             break;
           case 'playback_rate':
             selector = '.shaka-playback-rate-button';
+            shouldShow = config.showSpeedControl !== false;
             break;
           case 'rewind':
             selector = '.shaka-rewind-button';
@@ -220,11 +229,25 @@ shaka.ui.LayoutManager = class extends shaka.ui.Element {
             break;
         }
 
-        if (selector) {
-          const element = container.querySelector(selector);
-          if (element) {
-            shaka.log.debug('Showing element:', selector);
-            element.style.display = '';
+        if (selector && shouldShow) {
+          if (Array.isArray(selector)) {
+            for (let i = 0; i < selector.length; i++) {
+              const sel = selector[i];
+              const elements = container.querySelectorAll(sel);
+              for (let j = 0; j < elements.length; j++) {
+                const element = elements[j];
+                if (element) {
+                  shaka.log.debug('Showing element:', sel);
+                  element.style.display = '';
+                }
+              }
+            }
+          } else {
+            const element = container.querySelector(selector);
+            if (element) {
+              shaka.log.debug('Showing element:', selector);
+              element.style.display = '';
+            }
           }
         }
       }
@@ -235,38 +258,57 @@ shaka.ui.LayoutManager = class extends shaka.ui.Element {
 
     // Handle settings menu items
     if ('collapseInSettings' in config) {
-      // Hide all settings menu items first
-      const settingsButtons = container
-          .querySelectorAll('.shaka-settings-menu button');
-      for (let i = 0; i < settingsButtons.length; i++) {
-        settingsButtons[i].style.display = 'none';
-      }
+      shaka.log.debug('Handling settings menu items');
 
-      // Show only the specified items
-      for (let i = 0; i < config.collapseInSettings.length; i++) {
-        const item = config.collapseInSettings[i];
-        let selector;
-        switch (item) {
-          case 'quality':
-            selector = '.shaka-quality-button';
-            break;
-          case 'playback_rate':
-            selector = '.shaka-playback-rate-button';
-            break;
-          case 'captions':
-            selector = '.shaka-captions-button';
-            break;
+      // Get all settings menu buttons
+      const settingsMenu = container.querySelector('.shaka-overflow-menu');
+      if (settingsMenu) {
+        // Hide all settings buttons first
+        const buttons = settingsMenu.querySelectorAll(
+            '.shaka-overflow-button, ' +
+            '.shaka-pip-button, ' +
+            '.shaka-save.video-frame-button',
+        );
+        for (let i = 0; i < buttons.length; i++) {
+          const button = buttons[i];
+          shaka.log.debug('Hiding settings button:', button.className);
+          button.style.display = 'none';
         }
-        if (selector) {
-          const element = container.querySelector(selector);
-          if (element) {
-            element.style.display = '';
+
+        // Show only the specified items
+        for (let i = 0; i < config.collapseInSettings.length; i++) {
+          const item = config.collapseInSettings[i];
+          let selector;
+          switch (item) {
+            case 'quality':
+              selector = '.shaka-resolution-button';
+              break;
+            case 'playback_rate':
+              selector = '.shaka-playbackrate-button';
+              break;
+            case 'captions':
+              selector = '.shaka-caption-button';
+              break;
+            case 'language':
+              selector = '.shaka-language-button';
+              break;
+            case 'picture_in_picture':
+              selector = '.shaka-pip-button';
+              break;
+            case 'video_frame':
+              selector = '.shaka-save.video-frame-button';
+              break;
+          }
+
+          if (selector) {
+            const button = settingsMenu.querySelector(selector);
+            if (button) {
+              shaka.log.debug('Showing settings button:', selector);
+              button.style.display = '';
+            }
           }
         }
       }
-
-      // Update settings menu
-      this.updateSettingsMenu_(config.collapseInSettings);
     }
   }
 
@@ -279,58 +321,45 @@ shaka.ui.LayoutManager = class extends shaka.ui.Element {
     const container = this.getControlsContainer_();
 
     // Apply primary color to controls container
-    if ('primaryColor' in config && config.primaryColor) {
-      container.style.setProperty('--shaka-primary-color', config.primaryColor);
+    if (config.primaryColor) {
+      // Get the controls and update its configuration
+      const controls = this.controls_;
+      const uiConfig = controls.getConfig();
 
-      // Also apply to specific elements
-      const playButton = container.querySelector('.shaka-play-button');
-      if (playButton) {
-        playButton.style.backgroundColor = config.primaryColor;
-      }
+      // Update the seek bar colors in the UI configuration
+      uiConfig.seekBarColors = {
+        base: '#ffffff',  // white
+        buffered: 'rgba(255, 255, 255, 0.54)',  // semi-transparent white
+        played: config.primaryColor, // use the primary color
+        adBreaks: 'rgba(255, 255, 255, 0.7)',
+      };
 
-      const progressBar = container.querySelector('.shaka-progress-bar');
-      if (progressBar) {
-        progressBar.style.backgroundColor = config.primaryColor;
-      }
-    }
+      // Apply the updated configuration
+      controls.configure(uiConfig);
 
-    // Apply button shape
-    if ('buttonShape' in config && config.buttonShape) {
-      const buttons = container.querySelectorAll('.shaka-play-button');
-      for (let i = 0; i < buttons.length; i++) {
-        const button = /** @type {!HTMLElement} */ (buttons[i]);
-        button.style.borderRadius =
-            config.buttonShape === 'Circle' ? '100%' : '10%';
-      }
-    }
-
-    // Apply seek bar colors
-    if ('seekBarColors' in config && config.seekBarColors) {
-      const seekBar = /** @type {!HTMLElement} */
-          (container.querySelector('.shaka-seek-bar'));
+      // Also set the CSS variable for immediate effect
+      const seekBar = container.querySelector('.shaka-seek-bar');
       if (seekBar) {
-        if (config.seekBarColors.base) {
-          seekBar.style.setProperty('--shaka-seek-bar-base-color',
-              config.seekBarColors.base);
-        }
-        if (config.seekBarColors.buffered) {
-          seekBar.style.setProperty('--shaka-seek-bar-buffered-color',
-              config.seekBarColors.buffered);
-        }
-        if (config.seekBarColors.played) {
-          seekBar.style.setProperty('--shaka-seek-bar-played-color',
-              config.seekBarColors.played);
-        }
+        seekBar.style.setProperty('--shaka-seek-bar-played-color',
+            config.primaryColor);
       }
     }
+  }
 
-    // Apply progress bar visibility
-    if ('showProgressBar' in config) {
-      const progressBar = container.querySelector('.shaka-seek-bar');
-      if (progressBar) {
-        progressBar.style.display = config.showProgressBar ? '' : 'none';
-      }
-    }
+  /**
+   * Convert hex color to RGB values
+   * @param {string} hex
+   * @return {?{r: number, g: number, b: number}}
+   * @private
+   */
+  hexToRGB_(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16),
+    } : null;
   }
 
   /**
@@ -342,14 +371,6 @@ shaka.ui.LayoutManager = class extends shaka.ui.Element {
     goog.asserts.assert(this.controls_, 'Controls must be initialized');
     const controls = this.controls_;
 
-    // Update control panel elements visibility
-    if ('showBackward' in config && config.showBackward !== undefined) {
-      this.toggleControl_('.shaka-rewind-button', config.showBackward);
-    }
-
-    if ('showForward' in config && config.showForward !== undefined) {
-      this.toggleControl_('.shaka-fast-forward-button', config.showForward);
-    }
 
     if ('showPlayPauseBtn' in config && config.showPlayPauseBtn !== undefined) {
       this.toggleControl_('.shaka-play-button', config.showPlayPauseBtn);
@@ -357,6 +378,7 @@ shaka.ui.LayoutManager = class extends shaka.ui.Element {
 
     if ('showTimeText' in config && config.showTimeText !== undefined) {
       this.toggleControl_('.shaka-time-container', config.showTimeText);
+      this.toggleControl_('.shaka-current-time', config.showTimeText);
     }
 
     if ('showFullScreen' in config && config.showFullScreen !== undefined) {

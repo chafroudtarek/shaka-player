@@ -28,6 +28,36 @@
     .theme-default { background: #2196F3; color: white; }
     .theme-dark { background: #333; color: white; }
     .theme-gradient { background: linear-gradient(45deg, #FF5722, #FF9800); color: white; }
+
+    /* Center big play button styles */
+    .shaka-play-button.material-icons-round {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70px !important;
+      height: 70px !important;
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px !important;
+      border: none;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    /* Other styles */
+    .shaka-controls-button-panel {
+      position: absolute;
+      width: 98%;
+      right: 9px;
+      bottom: 1px;
+    }
+
+    .shaka-range-container {
+      top: -200%;
+    }
   </style>
 </head>
 <body>
@@ -88,6 +118,7 @@
 
     function applyDefaultTheme() {
       try {
+        console.log('Applying default theme...');
         const controls = ui.getControls();
         if (!controls) {
           console.error('Controls not initialized');
@@ -98,37 +129,30 @@
         const playerConfig = {
           controlPanelElements: [
             'play_pause',
-            // 'rewind',
-            // 'fast_forward',
-            // 'time_and_duration',
-             'spacer',
+            'spacer',
             'mute',
-             'volume',
-            // 'quality',
-             'playback_rate',
-            // 'overflow_menu'
+            'volume',
+            'playback_rate',
+            'overflow_menu',
+            'time_and_duration'
           ],
           addSeekBar: true,
           showBackward: true,
           showForward: true,
-          showPlayPauseBtn: true,
           showTimeText: true,
-          showFullScreen: false,
-          showProgressBar: false,
+          showPlayPauseBtn: true,
+          showFullScreen: true,
+          showProgressBar: true,
           showQualityControl: true,
           showSpeedControl: true,
-          primaryColor: '#556666',
+          primaryColor: '#ff0000',
           buttonShape: 'Circle',
           skipDuration: 10,
-          enableTooltips: true,
-          seekBarColors: {
-            base: '#000',
-            buffered: '#000',
-            played: '#000'
-          },
-          collapseInSettings: ['quality', 'playback_rate']
+          addBigPlayButton: true,
+          collapseInSettings: [
+            'quality'
+          ]
         };
-
         layoutManager.applyConfig(playerConfig);
         console.log('Default theme applied successfully');
       } catch (error) {
