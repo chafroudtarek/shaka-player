@@ -229,13 +229,24 @@ shaka.ui.LayoutManager = class extends shaka.ui.Element {
         }
         .shaka-big-play-button.playing::after {
           content: '';
-          width: 30px;
+          width: 12px;
           height: 40px;
           border: none;
-          margin-left: 0;
           background: white;
-          box-shadow: -10px 0 0 0 white;
-          clip-path: inset(0 -10px 0 0);
+          margin-left: -20px;
+          box-shadow: 20px 0 0 white;
+        }
+        .shaka-big-play-button.playing::after::before {
+          content: '';
+          width: 10px;
+          height: 40px;
+          background: white;
+        }
+        .shaka-big-play-button.playing::after::after {
+          content: '';
+          width: 10px;
+          height: 40px;
+          background: white;
         }
         .shaka-video-container.playing .shaka-big-play-button {
           opacity: 0;
